@@ -1905,6 +1905,319 @@ var once = function (e, t) {
   });
 
 (function (win) {
+  const DEFAULT_LANGUAGE = "en";
+  const STORAGE_KEY = "sv288_login_language";
+  const I18N_DICT = {
+    en: {
+      labels: {
+        account: "Login Name",
+        password: "Password",
+      },
+      placeholders: {
+        account: "Login Name",
+        password: "Password",
+      },
+      checkbox: {
+        rememberMe: "Remember Me",
+      },
+      buttons: {
+        login: "Login",
+        signup: "Sign Up",
+      },
+      content: {
+        compatibilityTitle: "Our platform is most compatible with:",
+        browserChrome: "Google Chrome",
+        browserSafari: "Safari",
+      },
+      messages: {
+        noPhone: "Please enter your phone number.",
+        noPassword: "Please enter your password.",
+        noFetch: "This browser does not support secure login.",
+        unexpectedResponse: "Unexpected server response.",
+        loginFailedWithStatus: "Login failed ({status}).",
+        loginFailed: "Login failed.",
+        loginSuccess: "Login successful.",
+        networkError: "Unable to reach the login service. Please try again.",
+        unknownError: "unknown error",
+      },
+    },
+    cn: {
+      labels: {
+        account: "登录账号",
+        password: "密码",
+      },
+      placeholders: {
+        account: "登录账号",
+        password: "密码",
+      },
+      checkbox: {
+        rememberMe: "记住我",
+      },
+      buttons: {
+        login: "登录",
+        signup: "注册",
+      },
+      content: {
+        compatibilityTitle: "推荐使用以下浏览器：",
+        browserChrome: "谷歌浏览器",
+        browserSafari: "Safari 浏览器",
+      },
+      messages: {
+        noPhone: "请输入您的手机号。",
+        noPassword: "请输入您的密码。",
+        noFetch: "当前浏览器不支持安全登录。",
+        unexpectedResponse: "服务器返回异常。",
+        loginFailedWithStatus: "登录失败（{status}）。",
+        loginFailed: "登录失败。",
+        loginSuccess: "登录成功。",
+        networkError: "暂时无法连接登录服务，请稍后再试。",
+        unknownError: "未知错误",
+      },
+    },
+    vn: {
+      labels: {
+        account: "Tên đăng nhập",
+        password: "Mật khẩu",
+      },
+      placeholders: {
+        account: "Tên đăng nhập",
+        password: "Mật khẩu",
+      },
+      checkbox: {
+        rememberMe: "Ghi nhớ tôi",
+      },
+      buttons: {
+        login: "Đăng nhập",
+        signup: "Đăng ký",
+      },
+      content: {
+        compatibilityTitle: "Nền tảng hoạt động tốt nhất trên:",
+        browserChrome: "Google Chrome",
+        browserSafari: "Safari",
+      },
+      messages: {
+        noPhone: "Vui lòng nhập số điện thoại.",
+        noPassword: "Vui lòng nhập mật khẩu.",
+        noFetch: "Trình duyệt này không hỗ trợ đăng nhập an toàn.",
+        unexpectedResponse: "Phản hồi máy chủ không hợp lệ.",
+        loginFailedWithStatus: "Đăng nhập thất bại ({status}).",
+        loginFailed: "Đăng nhập thất bại.",
+        loginSuccess: "Đăng nhập thành công.",
+        networkError:
+          "Không thể kết nối tới dịch vụ đăng nhập. Vui lòng thử lại.",
+        unknownError: "lỗi không xác định",
+      },
+    },
+    id: {
+      labels: {
+        account: "Nomor telepon",
+        password: "Kata sandi",
+      },
+      placeholders: {
+        account: "Nomor telepon",
+        password: "Kata sandi",
+      },
+      checkbox: {
+        rememberMe: "Ingat saya",
+      },
+      buttons: {
+        login: "Masuk",
+        signup: "Daftar",
+      },
+      content: {
+        compatibilityTitle: "Platform kami paling kompatibel dengan:",
+        browserChrome: "Google Chrome",
+        browserSafari: "Safari",
+      },
+      messages: {
+        noPhone: "Silakan masukkan nomor telepon Anda.",
+        noPassword: "Silakan masukkan kata sandi Anda.",
+        noFetch: "Peramban ini tidak mendukung login aman.",
+        unexpectedResponse: "Respons server tidak dapat dikenali.",
+        loginFailedWithStatus: "Gagal masuk ({status}).",
+        loginFailed: "Gagal masuk.",
+        loginSuccess: "Berhasil masuk.",
+        networkError:
+          "Tidak dapat terhubung ke layanan login. Coba lagi.",
+        unknownError: "kesalahan tidak diketahui",
+      },
+    },
+  };
+
+  const TEXT_TARGETS = [
+    { selector: 'label[for="account"]', key: "labels.account" },
+    { selector: 'label[for="password"]', key: "labels.password" },
+    {
+      selector: ".modal-main .modal-layout .txt-tooltip",
+      key: "checkbox.rememberMe",
+    },
+    { selector: "#loginBtn", key: "buttons.login" },
+    { selector: "#openHyperLink .btn-text", key: "buttons.signup" },
+    {
+      selector: ".modal-main .modal-layout .badge-group p",
+      key: "content.compatibilityTitle",
+    },
+    {
+      selector:
+        '.modal-main .modal-layout .badge[data-brand="chrome"] .badge-text',
+      key: "content.browserChrome",
+    },
+    {
+      selector:
+        '.modal-main .modal-layout .badge[data-brand="safari"] .badge-text',
+      key: "content.browserSafari",
+    },
+  ];
+
+  const ATTR_TARGETS = [
+    { selector: "#account", attr: "placeholder", key: "placeholders.account" },
+    { selector: "#password", attr: "placeholder", key: "placeholders.password" },
+  ];
+
+  let currentLanguage = DEFAULT_LANGUAGE;
+
+  function formatText(text, replacements) {
+    if (!replacements) {
+      return text;
+    }
+    return Object.keys(replacements).reduce((acc, key) => {
+      const value =
+        replacements[key] === undefined || replacements[key] === null
+          ? ""
+          : replacements[key];
+      return acc.replace(new RegExp(`{${key}}`, "g"), value);
+    }, text);
+  }
+
+  function resolveValue(key, lang) {
+    const parts = key.split(".");
+    const dictionary = I18N_DICT[lang] || I18N_DICT[DEFAULT_LANGUAGE];
+    return parts.reduce((acc, part) => {
+      if (acc && typeof acc === "object" && part in acc) {
+        return acc[part];
+      }
+      return undefined;
+    }, dictionary);
+  }
+
+  function translate(key, replacements, lang) {
+    const selectedLang = I18N_DICT[lang] ? lang : DEFAULT_LANGUAGE;
+    const localized = resolveValue(key, selectedLang);
+    let text =
+      typeof localized === "string"
+        ? localized
+        : resolveValue(key, DEFAULT_LANGUAGE);
+    if (typeof text !== "string") {
+      text = key;
+    }
+    return formatText(text, replacements);
+  }
+
+  function applyTranslations(lang) {
+    TEXT_TARGETS.forEach(({ selector, key }) => {
+      const value = translate(key, null, lang);
+      if (!value) {
+        return;
+      }
+      const nodes = document.querySelectorAll(selector);
+      nodes.forEach((node) => {
+        node.textContent = value;
+        if (node.id === "loginBtn" && node.dataset) {
+          node.dataset.originalText = value;
+        }
+      });
+    });
+    ATTR_TARGETS.forEach(({ selector, attr, key }) => {
+      const value = translate(key, null, lang);
+      if (!value) {
+        return;
+      }
+      const element = document.querySelector(selector);
+      if (element) {
+        element.setAttribute(attr, value);
+      }
+    });
+  }
+
+  function setLanguage(lang, options = {}) {
+    const normalized = I18N_DICT[lang] ? lang : DEFAULT_LANGUAGE;
+    const previousLanguage = currentLanguage;
+    currentLanguage = normalized;
+    applyTranslations(normalized);
+    const html = document.documentElement;
+    if (html) {
+      html.setAttribute("lang", normalized);
+    }
+    const selectorElement = document.getElementById("selectLang");
+    if (selectorElement && selectorElement.value !== normalized) {
+      selectorElement.value = normalized;
+    }
+    if (!options.skipSave) {
+      try {
+        win.localStorage.setItem(STORAGE_KEY, normalized);
+      } catch (error) {
+        console.warn("Unable to store language preference:", error);
+      }
+    }
+    document.dispatchEvent(
+      new CustomEvent("sv288-language-change", {
+        detail: {
+          language: normalized,
+          previousLanguage,
+        },
+      })
+    );
+  }
+
+  function initLanguage() {
+    let savedLanguage = null;
+    try {
+      savedLanguage = win.localStorage.getItem(STORAGE_KEY);
+    } catch (error) {
+      console.warn("Unable to read language preference:", error);
+    }
+    const html = document.documentElement;
+    const initialLanguage =
+      savedLanguage ||
+      (html ? html.getAttribute("lang") : null) ||
+      DEFAULT_LANGUAGE;
+    setLanguage(initialLanguage, { skipSave: !savedLanguage });
+  }
+
+  win.changeLanguage = function (input) {
+    if (!input) {
+      return;
+    }
+    if (typeof input === "string") {
+      setLanguage(input);
+      return;
+    }
+    const value =
+      input.value ||
+      (input.dataset && input.dataset.lang) ||
+      (typeof input.getAttribute === "function"
+        ? input.getAttribute("data-lang")
+        : null);
+    if (value) {
+      setLanguage(value);
+    }
+  };
+
+  win.I18n = {
+    t: (key, replacements, langOverride) =>
+      translate(key, replacements, langOverride || currentLanguage),
+    getCurrentLanguage: () => currentLanguage,
+    setLanguage,
+    applyTranslations: () => applyTranslations(currentLanguage),
+    get availableLanguages() {
+      return Object.keys(I18N_DICT);
+    },
+  };
+
+  document.addEventListener("DOMContentLoaded", initLanguage);
+})(window);
+
+(function (win) {
   const API_URL = "https://bo.gagavn138.com/api/login_user";
   const STORAGE_KEY_PHONE = "sv288_login_phone";
   const STORAGE_KEY_REMEMBER = "sv288_login_remember";
@@ -1917,8 +2230,52 @@ var once = function (e, t) {
   const getFeedbackMessageNode = () => document.getElementById("errorMsg");
   const getFeedbackIcon = () =>
     document.querySelector(".txt-error i");
+  const translator = win.I18n;
 
-  function showFeedback(message, type) {
+  const FALLBACK_MESSAGES = {
+    noPhone: "Please enter your phone number.",
+    noPassword: "Please enter your password.",
+    noFetch: "This browser does not support secure login.",
+    unexpectedResponse: "Unexpected server response.",
+    loginFailedWithStatus: "Login failed ({status}).",
+    loginFailed: "Login failed.",
+    loginSuccess: "Login successful.",
+    networkError: "Unable to reach the login service. Please try again.",
+    unknownError: "unknown error",
+  };
+
+  function formatFallback(message, replacements) {
+    if (!replacements) {
+      return message;
+    }
+    return Object.keys(replacements).reduce((acc, key) => {
+      const value =
+        replacements[key] === undefined || replacements[key] === null
+          ? ""
+          : replacements[key];
+      return acc.replace(new RegExp(`{${key}}`, "g"), value);
+    }, message);
+  }
+
+  function getMessage(key, replacements) {
+    if (translator && typeof translator.t === "function") {
+      return translator.t(`messages.${key}`, replacements);
+    }
+    const fallback = FALLBACK_MESSAGES[key] || key;
+    if (typeof fallback === "string") {
+      return formatFallback(fallback, replacements);
+    }
+    return key;
+  }
+
+  function getLanguageCode() {
+    if (translator && typeof translator.getCurrentLanguage === "function") {
+      return translator.getCurrentLanguage();
+    }
+    return null;
+  }
+
+  function showFeedback(message, type, meta) {
     const box = getFeedbackBox();
     const messageNode = getFeedbackMessageNode();
     const iconNode = getFeedbackIcon();
@@ -1935,6 +2292,17 @@ var once = function (e, t) {
       );
     }
     box.style.display = "block";
+    if (box.dataset) {
+      if (meta && typeof meta === "object" && meta.key) {
+        box.dataset.feedbackKey = meta.key;
+        box.dataset.feedbackReplacements = meta.replacements
+          ? JSON.stringify(meta.replacements)
+          : "";
+      } else {
+        delete box.dataset.feedbackKey;
+        delete box.dataset.feedbackReplacements;
+      }
+    }
   }
 
   function hideFeedback() {
@@ -1944,6 +2312,10 @@ var once = function (e, t) {
     }
     box.style.display = "none";
     box.classList.remove("is-success", "is-error");
+    if (box.dataset) {
+      delete box.dataset.feedbackKey;
+      delete box.dataset.feedbackReplacements;
+    }
   }
 
   function setLoading(isLoading) {
@@ -1963,6 +2335,30 @@ var once = function (e, t) {
         btn.textContent = btn.dataset.originalText;
       }
     }
+  }
+
+  function retranslateFeedback() {
+    const box = getFeedbackBox();
+    const messageNode = getFeedbackMessageNode();
+    if (!box || !messageNode) {
+      return;
+    }
+    if (box.style.display === "none") {
+      return;
+    }
+    const key = box.dataset ? box.dataset.feedbackKey : null;
+    if (!key) {
+      return;
+    }
+    let replacements = undefined;
+    if (box.dataset && box.dataset.feedbackReplacements) {
+      try {
+        replacements = JSON.parse(box.dataset.feedbackReplacements);
+      } catch (error) {
+        console.warn("Unable to parse feedback replacements:", error);
+      }
+    }
+    messageNode.textContent = getMessage(key, replacements);
   }
 
   function sendBridgeEvent(eventName, payload) {
@@ -2032,16 +2428,22 @@ var once = function (e, t) {
     const password = passwordInput ? passwordInput.value : "";
 
     if (!phone) {
-      showFeedback("Please enter your phone number.", "error");
+      showFeedback(getMessage("noPhone"), "error", {
+        key: "noPhone",
+      });
       return;
     }
     if (!password) {
-      showFeedback("Please enter your password.", "error");
+      showFeedback(getMessage("noPassword"), "error", {
+        key: "noPassword",
+      });
       return;
     }
 
     if (!win.fetch) {
-      showFeedback("This browser does not support secure login.", "error");
+      showFeedback(getMessage("noFetch"), "error", {
+        key: "noFetch",
+      });
       return;
     }
 
@@ -2066,25 +2468,37 @@ var once = function (e, t) {
           data = JSON.parse(text);
         } catch (parseError) {
           console.error("Unable to parse login response:", parseError);
-          showFeedback("Unexpected server response.", "error");
+          const unexpected = getMessage("unexpectedResponse");
+          showFeedback(unexpected, "error", {
+            key: "unexpectedResponse",
+          });
           sendBridgeEvent("LOGIN_FAILED", {
             ok: response.ok,
             statusCode: response.status,
-            message: "Unexpected server response.",
+            message: unexpected,
+            language: getLanguageCode(),
           });
           return;
         }
       }
 
       if (!response.ok || !data.status) {
-        const message =
-          (data && data.message) ||
-          `Login failed (${response.status || "unknown error"}).`;
-        showFeedback(message, "error");
+        const fallbackStatus =
+          response.status || getMessage("unknownError");
+        const fallbackMessage = getMessage("loginFailedWithStatus", {
+          status: fallbackStatus,
+        });
+        const message = (data && data.message) || fallbackMessage;
+        const meta =
+          data && data.message
+            ? null
+            : { key: "loginFailedWithStatus", replacements: { status: fallbackStatus } };
+        showFeedback(message, "error", meta);
         sendBridgeEvent("LOGIN_FAILED", {
           ok: response.ok,
           statusCode: response.status,
           message,
+          language: getLanguageCode(),
         });
         return;
       }
@@ -2092,11 +2506,17 @@ var once = function (e, t) {
       const remember = !!(rememberCheckbox && rememberCheckbox.checked);
       persistPhone(phone, remember);
 
+      const currentLanguage = getLanguageCode();
       const payload = {
         ...data,
         phone,
       };
-      showFeedback("Login successful.", "success");
+      if (currentLanguage) {
+        payload.language = currentLanguage;
+      }
+      showFeedback(getMessage("loginSuccess"), "success", {
+        key: "loginSuccess",
+      });
       sendBridgeEvent("LOGIN_SUCCESS", payload);
       win.dispatchEvent(
         new CustomEvent("sv288-login-success", {
@@ -2105,12 +2525,13 @@ var once = function (e, t) {
       );
     } catch (error) {
       console.error("Login request failed:", error);
-      showFeedback(
-        "Unable to reach the login service. Please try again.",
-        "error"
-      );
+      const networkMessage = getMessage("networkError");
+      showFeedback(networkMessage, "error", {
+        key: "networkError",
+      });
       sendBridgeEvent("LOGIN_ERROR", {
-        message: error && error.message ? error.message : "Network error",
+        message: error && error.message ? error.message : networkMessage,
+        language: getLanguageCode(),
       });
     } finally {
       setLoading(false);
@@ -2118,6 +2539,7 @@ var once = function (e, t) {
   }
 
   document.addEventListener("DOMContentLoaded", hydrateRememberedPhone);
+  document.addEventListener("sv288-language-change", retranslateFeedback);
 
   win.LoginHandler = {
     playerLoginCheck,

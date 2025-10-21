@@ -103,10 +103,12 @@
           .modal-main .modal-layout .txt-error #errorMsg {
             color: inherit !important;
           }
-          .modal-main .modal-layout .txt-error.is-success i {
+          .modal-main .modal-layout .txt-error.is-success i,
+          .modal-main .modal-layout .txt-error.is-success #errorMsg {
             color: #166534 !important;
           }
-          .modal-main .modal-layout .txt-error.is-error i {
+          .modal-main .modal-layout .txt-error.is-error i,
+          .modal-main .modal-layout .txt-error.is-error #errorMsg {
             color: #d32f2f !important;
           }
         </style>
@@ -155,7 +157,7 @@
             "
           >
             <i class="icon icon-user-plus" style="color: #fff !important"></i>
-            Sign Up
+            <span class="btn-text">Sign Up</span>
           </button>
         </div>
 
@@ -163,13 +165,13 @@
 
         <div class="badge-group">
           <p>Our platform is most compatible with:</p>
-          <span class="badge" style="color: #000">
+          <span class="badge" style="color: #000" data-brand="chrome">
             <i class="icon icon-googlechrome"></i>
-            Google Chrome
+            <span class="badge-text">Google Chrome</span>
           </span>
-          <span class="badge" style="color: #000">
+          <span class="badge" style="color: #000" data-brand="safari">
             <i class="icon icon-safari"></i>
-            Safari
+            <span class="badge-text">Safari</span>
           </span>
         </div>
       </div>
